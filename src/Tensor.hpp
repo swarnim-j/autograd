@@ -1,5 +1,5 @@
-#ifndef TENSOR_H
-#define TENSOR_H
+#ifndef TENSOR_HPP
+#define TENSOR_HPP
 
 #include <iostream>
 #include <vector>
@@ -118,4 +118,4 @@ void Tensor<T>::print() const {
     }
 }
 
-#endif // TENSOR_H
+#endif // TENSOR_HPP
