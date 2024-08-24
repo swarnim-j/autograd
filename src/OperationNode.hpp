@@ -8,8 +8,10 @@
 template <typename T>
 class OperationNode : public Node<T> {
 public:
-    OperationNode(const std::vector<std::shared_ptr<Node<T>>>& inputs,
-    const std::function<std::shared_ptr<Tensor<T>>(const std::vector<std::shared_ptr<Tensor<T>>>&)>& operation);
+    OperationNode(
+        const std::vector<std::shared_ptr<Node<T>>>& inputs,
+        const std::function<std::shared_ptr<Tensor<T>>(const std::vector<std::shared_ptr<Tensor<T>>>&)>& operation
+    );
     std::shared_ptr<Tensor<T>> forward() override;
 
 private:
@@ -18,3 +20,18 @@ private:
 };
 
 #endif // OPERATION_NODE_HPP
+
+template <typename T>
+OperationNode<T>::OperationNode(
+    const std::vector<std::shared_ptr<Node<T>>>& inputs,
+    const std::function<std::shared_ptr<Tensor<T>>(const std::vector<std::shared_ptr<Tensor<T>>>&)>& operation
+) : inputs(inputs), operation(operation) {}
+
+template <typename T>
+std::shared_ptr<Tensor<T>> OperationNode<T>::forward() {
+    std::vector<std::shared_ptr<Tensor<T>>> input_tensors;
+    for (const auto& input : inputs) {
+        input_tensors.push_back(input->forward());
+    }
+    return operation(input_tensors);
+}

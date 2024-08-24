@@ -14,3 +14,11 @@ private:
 };
 
 #endif // INPUT_NODE_HPP
+
+template <typename T>
+InputNode<T>::InputNode(const std::shared_ptr<Tensor<T>>& input) : input(input) {}
+
+template <typename T>
+std::shared_ptr<Tensor<T>> InputNode<T>::forward() {
+    return input;
+}
