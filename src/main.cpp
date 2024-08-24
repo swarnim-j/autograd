@@ -1,35 +1,53 @@
 #include "Tensor.hpp"
+#include "Graph.hpp"
 #include <iostream>
 #include <memory>
+#include <functional>
+
+// Helper function to print a tensor
+template <typename T>
+void print_tensor(const std::string& name, const std::shared_ptr<Tensor<T>>& tensor) {
+    std::cout << name << ":" << std::endl;
+    tensor->print();
+    std::cout << std::endl;
+}
 
 int main() {
-    std::cout << "Autograd Engine Example" << std::endl;
+    std::cout << "Autograd Engine Test" << std::endl;
 
-    // Create two 2x2 Tensors
-    std::shared_ptr<Tensor<int>> t1 = std::make_shared<Tensor<int>>(std::vector<int>{1, 2, 3, 4}, std::vector<size_t>{2, 2});
-    std::shared_ptr<Tensor<int>> t2 = std::make_shared<Tensor<int>>(std::vector<int>{5, 6, 7, 8}, std::vector<size_t>{2, 2});
+    // Create a graph
+    Graph<float> graph;
 
-    // Print the original tensors
-    std::cout << "Tensor 1:" << std::endl;
-    t1->print();
+    // Create input tensors
+    auto x = graph.add_input(std::make_shared<Tensor<float>>(std::vector<float>{1.0f, 2.0f, 3.0f}, std::vector<size_t>{3}));
+    auto y = graph.add_input(std::make_shared<Tensor<float>>(std::vector<float>{4.0f, 5.0f, 6.0f}, std::vector<size_t>{3}));
 
-    std::cout << "Tensor 2:" << std::endl;
-    t2->print();
+    print_tensor("x", x->forward());
+    print_tensor("y", y->forward());
 
-    // Perform element-wise addition
-    std::shared_ptr<Tensor<int>> t3 = *t1 + t2;
-    std::cout << "Tensor 1 + Tensor 2:" << std::endl;
-    t3->print();
+    // Define operations
+    auto add_op = graph.add_operation({x, y}, [](const std::vector<std::shared_ptr<Tensor<float>>>& inputs) {
+        return *inputs[0] + inputs[1];
+    });
 
-    // Perform element-wise subtraction
-    std::shared_ptr<Tensor<int>> t4 = *t1 - t2;
-    std::cout << "Tensor 1 - Tensor 2:" << std::endl;
-    t4->print();
+    auto mult_op = graph.add_operation({x, y}, [](const std::vector<std::shared_ptr<Tensor<float>>>& inputs) {
+        return *inputs[0] * inputs[1];
+    });
 
-    // Perform element-wise multiplication
-    std::shared_ptr<Tensor<int>> t5 = *t1 * t2;
-    std::cout << "Tensor 1 * Tensor 2:" << std::endl;
-    t5->print();
+    // Perform computations
+    auto z_add = graph.forward(add_op);
+    print_tensor("z_add (x + y)", z_add);
+
+    auto z_mult = graph.forward(mult_op);
+    print_tensor("z_mult (x * y)", z_mult);
+
+    // More complex operation: (x + y) * x
+    auto complex_op = graph.add_operation({add_op, x}, [](const std::vector<std::shared_ptr<Tensor<float>>>& inputs) {
+        return *inputs[0] * inputs[1];
+    });
+
+    auto result = graph.forward(complex_op);
+    print_tensor("result ((x + y) * x)", result);
 
     return 0;
 }
