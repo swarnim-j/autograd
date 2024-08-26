@@ -11,9 +11,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(SOURCES
     src/main.cpp
     src/Tensor.h
-    src/Operation.h
     src/AutogradOps.h
-    src/Mul.h
+    src/operations/Operation.h
+    src/operations/Mul.h
+    src/operations/Add.h
 )
 
 # Add executable
