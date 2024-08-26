@@ -1,53 +1,53 @@
-#include "Tensor.hpp"
-#include "Graph.hpp"
 #include <iostream>
-#include <memory>
-#include <functional>
-
-// Helper function to print a tensor
-template <typename T>
-void print_tensor(const std::string& name, const std::shared_ptr<Tensor<T>>& tensor) {
-    std::cout << name << ":" << std::endl;
-    tensor->print();
-    std::cout << std::endl;
-}
+#include "Tensor.h"
+#include "Operation.h"
+#include "AutogradOps.h"
 
 int main() {
-    std::cout << "Autograd Engine Test" << std::endl;
+    std::cout << "Starting main function" << std::endl;
 
-    // Create a graph
-    Graph<float> graph;
+    try {
+        auto a = AutogradOps<float>::tensor({2.0f}, {1}, true);
+        auto k = AutogradOps<float>::mul(a, a);
+        auto b = AutogradOps<float>::tensor({3.0f}, {1}, true);
+        auto c = AutogradOps<float>::mul(k, b);
+        auto d = AutogradOps<float>::tensor({4.0f}, {1}, true);
+        auto e = AutogradOps<float>::mul(c, d);
 
-    // Create input tensors
-    auto x = graph.add_input(std::make_shared<Tensor<float>>(std::vector<float>{1.0f, 2.0f, 3.0f}, std::vector<size_t>{3}));
-    auto y = graph.add_input(std::make_shared<Tensor<float>>(std::vector<float>{4.0f, 5.0f, 6.0f}, std::vector<size_t>{3}));
+        std::cout << "e = " << e->data[0] << std::endl;
+        std::cout << "d = " << d->data[0] << std::endl;
+        std::cout << "c = " << c->data[0] << std::endl;
+        std::cout << "b = " << b->data[0] << std::endl;
+        std::cout << "k = " << k->data[0] << std::endl;
+        std::cout << "a = " << a->data[0] << std::endl;
 
-    print_tensor("x", x->forward());
-    print_tensor("y", y->forward());
+        e->zero_grad();
+        e->backward();
+        std::cout << "After first backward:" << std::endl;
+        std::cout << "a.grad = " << a->grad->data[0] << std::endl;
+        std::cout << "b.grad = " << b->grad->data[0] << std::endl;
+        std::cout << "c.grad = " << c->grad->data[0] << std::endl;
+        std::cout << "d.grad = " << d->grad->data[0] << std::endl;
+        std::cout << "e.grad = " << e->grad->data[0] << std::endl;
+        std::cout << "k.grad = " << k->grad->data[0] << std::endl;
 
-    // Define operations
-    auto add_op = graph.add_operation({x, y}, [](const std::vector<std::shared_ptr<Tensor<float>>>& inputs) {
-        return *inputs[0] + inputs[1];
-    });
+        e->zero_grad();
+        e->backward();
+        std::cout << "After second backward:" << std::endl;
+        std::cout << "a.grad = " << a->grad->data[0] << std::endl;
+        std::cout << "b.grad = " << b->grad->data[0] << std::endl;
+        std::cout << "c.grad = " << c->grad->data[0] << std::endl;
+        std::cout << "d.grad = " << d->grad->data[0] << std::endl;
+        std::cout << "e.grad = " << e->grad->data[0] << std::endl;
+        std::cout << "k.grad = " << k->grad->data[0] << std::endl;
 
-    auto mult_op = graph.add_operation({x, y}, [](const std::vector<std::shared_ptr<Tensor<float>>>& inputs) {
-        return *inputs[0] * inputs[1];
-    });
+        std::cout << "Exiting main function" << std::endl;
+        return 0;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
 
-    // Perform computations
-    auto z_add = graph.forward(add_op);
-    print_tensor("z_add (x + y)", z_add);
-
-    auto z_mult = graph.forward(mult_op);
-    print_tensor("z_mult (x * y)", z_mult);
-
-    // More complex operation: (x + y) * x
-    auto complex_op = graph.add_operation({add_op, x}, [](const std::vector<std::shared_ptr<Tensor<float>>>& inputs) {
-        return *inputs[0] * inputs[1];
-    });
-
-    auto result = graph.forward(complex_op);
-    print_tensor("result ((x + y) * x)", result);
-
+    std::cout << "Exiting main function" << std::endl;
     return 0;
 }

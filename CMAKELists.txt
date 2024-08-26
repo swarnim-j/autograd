@@ -10,7 +10,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Source files
 set(SOURCES
     src/main.cpp
-    src/Tensor.hpp
+    src/Tensor.h
+    src/Operation.h
+    src/AutogradOps.h
+    src/Mul.h
 )
 
 # Add executable
