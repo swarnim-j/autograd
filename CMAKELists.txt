@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.10)
+
+# Project Name
+project(autograd)
+
+# C++ Standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Source files
+set(SOURCES
+    src/main.cpp
+    src/Tensor.h
+    src/Operation.h
+    src/AutogradOps.h
+    src/Mul.h
+)
+
+# Add executable
+add_executable(autograd ${SOURCES})
