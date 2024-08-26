@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <functional>
 
-#include "Operation.h"
+#include "operations/Operation.h"
 
 template<typename T>
 class Tensor : public std::enable_shared_from_this<Tensor<T>> {

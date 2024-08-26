@@ -7,6 +7,9 @@ project(autograd)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Add this line to specify the include directories
+include_directories(src)
+
 # Source files
 set(SOURCES
     src/main.cpp
@@ -15,6 +18,8 @@ set(SOURCES
     src/operations/Operation.h
     src/operations/Mul.h
     src/operations/Add.h
+    src/operations/ReLU.h
+    src/operations/Sigmoid.h
 )
 
 # Add executable
