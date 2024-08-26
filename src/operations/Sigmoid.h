@@ -32,9 +32,10 @@ std::vector<std::shared_ptr<Tensor<T>>> Sigmoid<T>::forward(const std::vector<st
         result_data, 
         inputs[0]->shape, 
         inputs[0]->requires_grad,
-        false
+        !inputs[0]->requires_grad
     );  
 
+    // Set the gradient function and save the tensors
     if (result->requires_grad) {
         result->grad_fn = this->shared_from_this();
     }
