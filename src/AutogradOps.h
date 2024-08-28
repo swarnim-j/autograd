@@ -6,6 +6,7 @@
 #include "operations/ReLU.h"
 #include "operations/Sigmoid.h"
 #include "operations/Sum.h"
+#include "operations/Softmax.h"
 
 template<typename T>
 class AutogradOps {
@@ -16,6 +17,7 @@ public:
     static std::shared_ptr<Tensor<T>> relu(const std::shared_ptr<Tensor<T>>& input);
     static std::shared_ptr<Tensor<T>> sigmoid(const std::shared_ptr<Tensor<T>>& input);
     static std::shared_ptr<Tensor<T>> sum(const std::vector<std::shared_ptr<Tensor<T>>>& inputs);
+    static std::shared_ptr<Tensor<T>> softmax(const std::shared_ptr<Tensor<T>>& input, int dim = -1);
 };
 
 template<typename T>
@@ -51,6 +53,12 @@ template<typename T>
 std::shared_ptr<Tensor<T>> AutogradOps<T>::sum(const std::vector<std::shared_ptr<Tensor<T>>>& inputs) {
     auto op = std::make_shared<Sum<T>>();
     return op->forward(inputs)[0];
+}
+
+template<typename T>
+std::shared_ptr<Tensor<T>> AutogradOps<T>::softmax(const std::shared_ptr<Tensor<T>>& input, int dim) {
+    auto op = std::make_shared<Softmax<T>>(dim);
+    return op->forward({input})[0];
 }
 
 #endif // AUTOGRAD_OPS_H
