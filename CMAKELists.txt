@@ -13,6 +13,10 @@ include_directories(src)
 # Source files
 set(SOURCES
     src/main.cpp
+)
+
+# Header files
+set(HEADERS
     src/Tensor.h
     src/AutogradOps.h
     src/operations/Operation.h
@@ -21,7 +25,8 @@ set(SOURCES
     src/operations/ReLU.h
     src/operations/Sigmoid.h
     src/operations/Softmax.h
+    src/operations/Tanh.h
 )
 
 # Add executable
-add_executable(autograd ${SOURCES})
+add_executable(autograd ${SOURCES} ${HEADERS})

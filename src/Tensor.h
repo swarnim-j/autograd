@@ -9,7 +9,8 @@
 #include <stdexcept>
 #include <functional>
 
-#include "operations/Operation.h"
+template<typename T>
+class Operation;
 
 template<typename T>
 class Tensor : public std::enable_shared_from_this<Tensor<T>> {
@@ -35,6 +36,8 @@ private:
     void compute_strides(); // Compute tensor strides
 };
 
+#include "operations/Operation.h"
+
 // constructor
 template<typename T>
 Tensor<T>::Tensor(
@@ -46,6 +49,7 @@ Tensor<T>::Tensor(
 
     // Check if the shape matches the data size
     size_t total_size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+
     if (data.size() != total_size) {
         throw std::invalid_argument("Data size does not match the shape dimensions.");
     }
@@ -108,9 +112,9 @@ bool Tensor<T>::is_scalar() const {
 template<typename T>
 void Tensor<T>::compute_strides() {
     size_t total_size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-    this->strides.resize(total_size);
+    this->strides.resize(shape.size());
     size_t stride = 1;
-    for (size_t i = total_size - 1; i >= 0; --i) {
+    for (int64_t i = shape.size() - 1; i >= 0; --i) {
         this->strides[i] = stride;
         stride *= this->shape[i];
     }
