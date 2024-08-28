@@ -2,7 +2,7 @@
 #define SUM_H
 
 #include "Tensor.h"
-#include "Operation.h"
+#include "operations/Operation.h"
 #include <memory>
 
 template<typename T>

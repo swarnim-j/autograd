@@ -2,7 +2,7 @@
 #define SIGMOID_H
 
 #include "Tensor.h"
-#include "Operation.h"
+#include "operations/Operation.h"
 #include <memory>
 
 template<typename T>
@@ -60,6 +60,5 @@ std::vector<std::shared_ptr<Tensor<T>>> Sigmoid<T>::backward(const std::vector<s
 
     return grads;
 }
-
 
 #endif // SIGMOID_H
