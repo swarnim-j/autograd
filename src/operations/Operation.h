@@ -18,7 +18,6 @@ public:
 
 protected:
     void save_tensors(const std::vector<std::shared_ptr<Tensor<T>>>& tensors);
-    void set_next_functions(const std::vector<std::shared_ptr<Tensor<T>>>& next_functions);
 };
 
 template<typename T>
