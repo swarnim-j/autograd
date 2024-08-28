@@ -16,6 +16,7 @@ class Tensor : public std::enable_shared_from_this<Tensor<T>> {
 public:
     std::vector<T> data; // Tensor data
     std::vector<size_t> shape; // Tensor shape
+    std::vector<size_t> strides; // Tensor strides
     std::shared_ptr<Tensor<T>> grad; // Gradient tensor
     std::shared_ptr<Operation<T>> grad_fn; // Gradient function
     bool is_leaf; // Whether the tensor is a leaf node
@@ -29,13 +30,16 @@ public:
 
     // Check if tensor is scalar
     bool is_scalar() const;
+
+private:
+    void compute_strides(); // Compute tensor strides
 };
 
 // constructor
 template<typename T>
 Tensor<T>::Tensor(
     const std::vector<T>& data, 
-    const std::vector<size_t>& shape, 
+    const std::vector<size_t>& shape,
     bool requires_grad,
     bool is_leaf
 ) : data(data), shape(shape), requires_grad(requires_grad), is_leaf(is_leaf), grad(nullptr), grad_fn(nullptr) {
@@ -45,6 +49,8 @@ Tensor<T>::Tensor(
     if (data.size() != total_size) {
         throw std::invalid_argument("Data size does not match the shape dimensions.");
     }
+
+    compute_strides();
 }
 
 template<typename T>
@@ -97,6 +103,17 @@ void Tensor<T>::zero_grad() {
 template<typename T>
 bool Tensor<T>::is_scalar() const {
     return data.size() == 1;
+}
+
+template<typename T>
+void Tensor<T>::compute_strides() {
+    size_t total_size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    this->strides.resize(total_size);
+    size_t stride = 1;
+    for (size_t i = total_size - 1; i >= 0; --i) {
+        this->strides[i] = stride;
+        stride *= this->shape[i];
+    }
 }
 
 #endif // TENSOR_H
