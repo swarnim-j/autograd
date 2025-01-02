@@ -25,7 +25,7 @@ std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::forward(const std::vector<st
 
     this->saved_tensors = inputs;
 
-    // Perform softmax operation
+    // Ensure dim is non-negative
     while (this->dim < 0) {
         this->dim += inputs[0]->shape.size();
     }
@@ -43,22 +43,23 @@ std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::forward(const std::vector<st
     }
 
     for (size_t i = 0; i < outer_size; ++i) {
-        for (size_t j = 0; j < dim_size; ++j) {
+        for (size_t k = 0; k < inner_size; ++k) {
             // Find the maximum value in the dimension
-            T max_val = inputs[0]->data[i * inner_size * dim_size + j * inner_size + 0];
-            for (size_t k = 1; k < inner_size; ++k) {
-                max_val = std::max(max_val, inputs[0]->data[i * inner_size * dim_size + j * inner_size + k]);
+            T max_val = inputs[0]->data[i * dim_size * inner_size + k];
+            for (size_t j = 1; j < dim_size; ++j) {
+                max_val = std::max(max_val, inputs[0]->data[i * dim_size * inner_size + j * inner_size + k]);
             }
 
             // Compute the sum of the exponentials
             T sum_exp = 0;
-            for (size_t k = 0; k < inner_size; ++k) {
-                sum_exp += std::exp(inputs[0]->data[i * inner_size * dim_size + j * inner_size + k] - max_val);
+            for (size_t j = 0; j < dim_size; ++j) {
+                sum_exp += std::exp(inputs[0]->data[i * dim_size * inner_size + j * inner_size + k] - max_val);
             }
 
             // Normalize the values
-            for (size_t k = 0; k < inner_size; ++k) {
-                result_data[i * inner_size * dim_size + j * inner_size + k] = std::exp(inputs[0]->data[i * inner_size * dim_size + j * inner_size + k] - max_val) / sum_exp;
+            for (size_t j = 0; j < dim_size; ++j) {
+                size_t idx = i * dim_size * inner_size + j * inner_size + k;
+                result_data[idx] = std::exp(inputs[0]->data[idx] - max_val) / sum_exp;
             }
         }
     }
@@ -88,8 +89,48 @@ std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::forward(const std::vector<st
 
 template<typename T>
 std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::backward(const std::vector<std::shared_ptr<Tensor<T>>>& grad_outputs) {
-    // TODO: Implement the backward pass
-    return {};
+    if (grad_outputs.size() != 1 || this->saved_tensors.size() != 1) {
+        throw std::invalid_argument("Softmax backward pass requires exactly 1 gradient output and 1 saved input tensor");
+    }
+
+    auto& grad_output = grad_outputs[0];
+    auto& output = this->saved_tensors[0];
+
+    std::vector<T> grad_input_data(output->data.size());
+    size_t dim_size = output->shape[this->dim];
+    size_t inner_size = 1;
+    size_t outer_size = 1;
+
+    for (size_t i = 0; i < this->dim; ++i) {
+        outer_size *= output->shape[i];
+    }
+    for (size_t i = this->dim + 1; i < output->shape.size(); ++i) {
+        inner_size *= output->shape[i];
+    }
+
+    for (size_t i = 0; i < outer_size; ++i) {
+        for (size_t k = 0; k < inner_size; ++k) {
+            T sum_grad_times_output = 0;
+            for (size_t j = 0; j < dim_size; ++j) {
+                size_t idx = i * dim_size * inner_size + j * inner_size + k;
+                sum_grad_times_output += grad_output->data[idx] * output->data[idx];
+            }
+
+            for (size_t j = 0; j < dim_size; ++j) {
+                size_t idx = i * dim_size * inner_size + j * inner_size + k;
+                grad_input_data[idx] = output->data[idx] * (grad_output->data[idx] - sum_grad_times_output);
+            }
+        }
+    }
+
+    auto grad_input = std::make_shared<Tensor<T>>(
+        grad_input_data,
+        output->shape,
+        output->requires_grad,
+        false  // Not a leaf node
+    );
+
+    return {grad_input};
 }
 
 #endif // SOFTMAX_H

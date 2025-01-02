@@ -17,8 +17,8 @@ public:
     static std::shared_ptr<Tensor<T>> add(const std::shared_ptr<Tensor<T>>& input1, const std::shared_ptr<Tensor<T>>& input2);
     static std::shared_ptr<Tensor<T>> relu(const std::shared_ptr<Tensor<T>>& input);
     static std::shared_ptr<Tensor<T>> sigmoid(const std::shared_ptr<Tensor<T>>& input);
-    static std::shared_ptr<Tensor<T>> sum(const std::vector<std::shared_ptr<Tensor<T>>>& inputs);
-    static std::shared_ptr<Tensor<T>> softmax(const std::shared_ptr<Tensor<T>>& input, int dim = -1);
+    static std::shared_ptr<Tensor<T>> sum(const std::shared_ptr<Tensor<T>>& input, int64_t dim = -1);
+    static std::shared_ptr<Tensor<T>> softmax(const std::shared_ptr<Tensor<T>>& input, int64_t dim = -1);
     static std::shared_ptr<Tensor<T>> tanh(const std::shared_ptr<Tensor<T>>& input);
 };
 
@@ -52,13 +52,13 @@ std::shared_ptr<Tensor<T>> AutogradOps<T>::sigmoid(const std::shared_ptr<Tensor<
 }
 
 template<typename T>
-std::shared_ptr<Tensor<T>> AutogradOps<T>::sum(const std::vector<std::shared_ptr<Tensor<T>>>& inputs) {
-    auto op = std::make_shared<Sum<T>>();
-    return op->forward(inputs)[0];
+std::shared_ptr<Tensor<T>> AutogradOps<T>::sum(const std::shared_ptr<Tensor<T>>& input, int64_t dim) {
+    auto op = std::make_shared<Sum<T>>(dim);
+    return op->forward({input})[0];
 }
 
 template<typename T>
-std::shared_ptr<Tensor<T>> AutogradOps<T>::softmax(const std::shared_ptr<Tensor<T>>& input, int dim) {
+std::shared_ptr<Tensor<T>> AutogradOps<T>::softmax(const std::shared_ptr<Tensor<T>>& input, int64_t dim) {
     auto op = std::make_shared<Softmax<T>>(dim);
     return op->forward({input})[0];
 }
