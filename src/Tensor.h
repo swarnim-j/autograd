@@ -30,7 +30,10 @@ public:
     Tensor(const std::vector<T>& data, const std::vector<size_t>& shape, bool requires_grad = false, bool is_leaf = true);
 
     // Check if tensor is scalar
-    bool is_scalar() const;
+    bool is_scalar() const {
+        // A tensor is scalar if it has shape {1} or empty shape
+        return shape.empty() || (shape.size() == 1 && shape[0] == 1);
+    }
 
 private:
     void compute_strides(); // Compute tensor strides
@@ -59,34 +62,65 @@ Tensor<T>::Tensor(
 
 template<typename T>
 void Tensor<T>::backward() {
+    if (!this->requires_grad) {
+        throw std::runtime_error("Calling backward on a tensor that doesn't require gradients");
+    }
     if (!this->is_scalar()) {
         throw std::runtime_error("backward() can only be called on scalar tensors");
     }
-    if (!this->grad_fn) {
-        throw std::runtime_error("Cannot call backward on a tensor without grad_fn");
+    if (!this->grad_fn && !this->is_leaf) {
+        throw std::runtime_error("Cannot call backward on a non-leaf tensor that doesn't have a grad_fn");
     }
+
+    // Initialize gradient if not already done
     if (!this->grad) {
-        this->grad = std::make_shared<Tensor<T>>(std::vector<T>(data.size(), 1), shape);
+        // For scalar tensors, initialize gradient as 1.0
+        this->grad = std::make_shared<Tensor<T>>(
+            std::vector<T>{1},
+            std::vector<size_t>{1},
+            false,  // requires_grad
+            true   // is_leaf
+        );
+    }
+
+    // If there's no grad_fn (leaf node), we're done
+    if (!this->grad_fn) {
+        return;
     }
 
     std::vector<std::shared_ptr<Tensor<T>>> grad_outputs = this->grad_fn->backward({this->grad});
 
+    // Validate gradient outputs
+    if (grad_outputs.size() != this->grad_fn->saved_tensors.size()) {
+        throw std::runtime_error("Number of gradient outputs doesn't match number of inputs");
+    }
+
     for (size_t i = 0; i < this->grad_fn->saved_tensors.size(); ++i) {
         auto& saved_tensor = this->grad_fn->saved_tensors[i];
-        if (saved_tensor->requires_grad) {
-            if (!saved_tensor->grad) {
-                saved_tensor->grad = grad_outputs[i];
-            } else {
-                // Accumulate gradients
-                for (size_t j = 0; j < saved_tensor->grad->data.size(); ++j) {
-                    saved_tensor->grad->data[j] += grad_outputs[i]->data[j];
-                }
+        if (!saved_tensor->requires_grad) {
+            continue;
+        }
+
+        auto& grad_output = grad_outputs[i];
+        if (grad_output->data.size() != saved_tensor->data.size()) {
+            throw std::runtime_error("Gradient data size mismatch");
+        }
+
+        if (!saved_tensor->grad) {
+            saved_tensor->grad = grad_output;
+        } else {
+            // Accumulate gradients
+            if (saved_tensor->grad->data.size() != grad_output->data.size()) {
+                throw std::runtime_error("Accumulated gradient data size mismatch");
             }
-            
-            // Only call backward if there's a grad_fn
-            if (saved_tensor->grad_fn) {
-                saved_tensor->backward();
+            for (size_t j = 0; j < saved_tensor->grad->data.size(); ++j) {
+                saved_tensor->grad->data[j] += grad_output->data[j];
             }
+        }
+        
+        // Only call backward if there's a grad_fn
+        if (saved_tensor->grad_fn) {
+            saved_tensor->backward();
         }
     }
 }
@@ -102,11 +136,6 @@ void Tensor<T>::zero_grad() {
             saved_tensor->zero_grad();
         }
     }
-}
-
-template<typename T>
-bool Tensor<T>::is_scalar() const {
-    return data.size() == 1;
 }
 
 template<typename T>

@@ -7,17 +7,27 @@ project(autograd)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# Set proper SDK path for macOS
+if(APPLE)
+    execute_process(
+        COMMAND xcrun --show-sdk-path
+        OUTPUT_VARIABLE CMAKE_OSX_SYSROOT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+endif()
+
+# Add compiler flags
+if(APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/Library/Developer/CommandLineTools/usr/include/c++/v1")
+endif()
+
 # Add this line to specify the include directories
 include_directories(src)
-
-# Source files
-set(SOURCES
-    src/main.cpp
-)
 
 # Header files
 set(HEADERS
     src/Tensor.h
+    src/Module.h
     src/AutogradOps.h
     src/operations/Operation.h
     src/operations/Mul.h
@@ -26,7 +36,17 @@ set(HEADERS
     src/operations/Sigmoid.h
     src/operations/Softmax.h
     src/operations/Tanh.h
+    src/operations/Linear.h
+    src/layers/LinearLayer.h
+    src/loss/MSELoss.h
+    src/loss/CrossEntropyLoss.h
+    src/optimizers/SGD.h
 )
 
-# Add executable
-add_executable(autograd ${SOURCES} ${HEADERS})
+# Add executables
+add_executable(autograd src/main.cpp ${HEADERS})
+add_executable(simple_nn src/examples/simple_nn.cpp ${HEADERS})
+add_executable(test_cross_entropy src/examples/test_cross_entropy.cpp ${HEADERS})
+
+# Set ALL_BUILD as the default target
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ALL_BUILD)

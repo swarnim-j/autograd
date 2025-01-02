@@ -15,6 +15,8 @@ public:
     virtual std::vector<std::shared_ptr<Tensor<T>>> backward(const std::vector<std::shared_ptr<Tensor<T>>>& grad_outputs) override;
 
     int64_t dim;
+private:
+    std::shared_ptr<Tensor<T>> input;  // Store input tensor
 };
 
 template<typename T>
@@ -23,7 +25,7 @@ std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::forward(const std::vector<st
         throw std::invalid_argument("Softmax operation requires exactly 1 input");
     }
 
-    this->saved_tensors = inputs;
+    this->input = inputs[0];  // Store input tensor
 
     // Ensure dim is non-negative
     while (this->dim < 0) {
@@ -64,25 +66,21 @@ std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::forward(const std::vector<st
         }
     }
 
-    // Determine if the result requires gradient computation
-    bool requires_grad = std::any_of(inputs.begin(), inputs.end(), [](const std::shared_ptr<Tensor<T>>& input) {
-        return input->requires_grad; 
-    });
-
-    // Determine if the result is a leaf node
-    bool is_leaf = !requires_grad;
-
     // Create the result tensor
     auto result = std::make_shared<Tensor<T>>(
         result_data, 
         inputs[0]->shape, 
-        requires_grad, 
-        is_leaf
+        inputs[0]->requires_grad,
+        false  // Not a leaf node since it's an operation output
     );
 
-    if (result->requires_grad) {
+    // Set the gradient function if input requires gradient
+    if (inputs[0]->requires_grad) {
         result->grad_fn = this->shared_from_this();
     }
+
+    // Save the output tensor for backward pass
+    this->saved_tensors = {result};
 
     return {result};
 }
@@ -90,22 +88,32 @@ std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::forward(const std::vector<st
 template<typename T>
 std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::backward(const std::vector<std::shared_ptr<Tensor<T>>>& grad_outputs) {
     if (grad_outputs.size() != 1 || this->saved_tensors.size() != 1) {
-        throw std::invalid_argument("Softmax backward pass requires exactly 1 gradient output and 1 saved input tensor");
+        throw std::invalid_argument("Softmax backward pass requires exactly 1 gradient output and 1 saved output tensor");
     }
 
     auto& grad_output = grad_outputs[0];
-    auto& output = this->saved_tensors[0];
+    auto& output = this->saved_tensors[0];  // This is the softmax output
 
-    std::vector<T> grad_input_data(output->data.size());
-    size_t dim_size = output->shape[this->dim];
+    // For scalar input, the gradient is 0 since softmax(x) = 1 for any x
+    if (this->input->is_scalar()) {
+        return {std::make_shared<Tensor<T>>(
+            std::vector<T>{0},
+            std::vector<size_t>{1},
+            this->input->requires_grad,
+            false  // Not a leaf node
+        )};
+    }
+
+    std::vector<T> grad_input_data(this->input->data.size());
+    size_t dim_size = this->input->shape[this->dim];
     size_t inner_size = 1;
     size_t outer_size = 1;
 
     for (size_t i = 0; i < this->dim; ++i) {
-        outer_size *= output->shape[i];
+        outer_size *= this->input->shape[i];
     }
-    for (size_t i = this->dim + 1; i < output->shape.size(); ++i) {
-        inner_size *= output->shape[i];
+    for (size_t i = this->dim + 1; i < this->input->shape.size(); ++i) {
+        inner_size *= this->input->shape[i];
     }
 
     for (size_t i = 0; i < outer_size; ++i) {
@@ -123,14 +131,12 @@ std::vector<std::shared_ptr<Tensor<T>>> Softmax<T>::backward(const std::vector<s
         }
     }
 
-    auto grad_input = std::make_shared<Tensor<T>>(
+    return {std::make_shared<Tensor<T>>(
         grad_input_data,
-        output->shape,
-        output->requires_grad,
+        this->input->shape,
+        this->input->requires_grad,
         false  // Not a leaf node
-    );
-
-    return {grad_input};
+    )};
 }
 
 #endif // SOFTMAX_H

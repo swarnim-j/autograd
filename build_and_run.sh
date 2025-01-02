@@ -4,11 +4,9 @@
 mkdir -p build
 cd build
 
-# Configure CMake
+# Configure and build
 cmake ..
+cmake --build . --target all
 
-# Build the project
-cmake --build .
-
-# Run the executable
+# Run the main executable
 ./autograd
